@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:csv/csv.dart';
 import 'package:http/http.dart' as http;
 
 class AIService {
@@ -55,9 +56,39 @@ class AIService {
   }
 
   Future<String> translateChunk(
-      String chunk, String systemPrompt, String glossary) async {
+      String chunk, String systemPrompt, String glossaryCsv) async {
+    // Parse CSV to formatted string
+    String formattedGlossary = "";
+    try {
+      final List<List<dynamic>> rows = const CsvToListConverter().convert(
+        glossaryCsv,
+        eol: '\n',
+        shouldParseNumbers: false,
+      );
+
+      final StringBuffer buffer = StringBuffer();
+      for (final row in rows) {
+        if (row.length >= 2) {
+          final original = row[0].toString().trim();
+          final vietnamese = row[1].toString().trim();
+          final definition = row.length > 2 ? row[2].toString().trim() : "";
+
+          if (original.isNotEmpty && vietnamese.isNotEmpty) {
+            buffer.write("- Term: $original\n");
+            buffer.write("  Vietnamese: $vietnamese\n");
+            if (definition.isNotEmpty) {
+              buffer.write("  Context/Definition: $definition\n");
+            }
+          }
+        }
+      }
+      formattedGlossary = buffer.toString().trim();
+    } catch (e) {
+      formattedGlossary = glossaryCsv; // Fallback
+    }
+
     final fullSystemPrompt =
-        "$systemPrompt\n\n### BẮT BUỘC TUÂN THỦ TỪ ĐIỂN (GLOSSARY):\n$glossary\n\n### YÊU CẦU DỊCH THUẬT NÂNG CAO:\n1. Dịch CHI TIẾT từng câu, tuyệt đối KHÔNG được tóm tắt hay bỏ sót ý.\n2. Giữ nguyên sắc thái biểu cảm, các thán từ, mô tả nội tâm của nhân vật.\n3. Nếu gặp thơ ca hoặc câu đối, hãy dịch sao cho vần điệu hoặc giữ nguyên Hán Việt nếu cần.\n4. Văn phong phải trôi chảy, tự nhiên như người bản xứ viết.";
+        "$systemPrompt\n\n### BẮT BUỘC TUÂN THỦ TỪ ĐIỂN (GLOSSARY):\n$formattedGlossary\n\n### YÊU CẦU DỊCH THUẬT NÂNG CAO:\n1. Dịch CHI TIẾT từng câu, tuyệt đối KHÔNG được tóm tắt hay bỏ sót ý.\n2. Giữ nguyên sắc thái biểu cảm, các thán từ, mô tả nội tâm của nhân vật.\n3. Nếu gặp thơ ca hoặc câu đối, hãy dịch sao cho vần điệu hoặc giữ nguyên Hán Việt nếu cần.\n4. Văn phong phải trôi chảy, tự nhiên như người bản xứ viết.";
 
     return await _chatCompletion(messages: [
       {"role": "system", "content": fullSystemPrompt},

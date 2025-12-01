@@ -3,10 +3,12 @@ import 'package:csv/csv.dart';
 import 'package:path/path.dart' as path;
 import '../models/translation_progress.dart';
 import '../services/ai_service.dart';
+import '../services/web_search_service.dart';
 import '../utils/text_processor.dart';
 
 class TranslationController {
   final AIService _aiService = AIService();
+  final WebSearchService _webSearchService = WebSearchService();
 
   /// Processes the file with resume capability.
   /// [onUpdate] callback returns status message and progress (0.0 to 1.0).
@@ -60,8 +62,15 @@ class TranslationController {
         // Non-critical error, continue
       }
 
-      // Prepare glossary for translation (convert CSV to prompt format)
-      final String glossary = _convertCsvToPromptFormat(glossaryCsv);
+      // Enrich Glossary: Lookup definitions
+      onUpdate("Đang tra cứu thuật ngữ (RAG)...", 0.35);
+      final String enrichedGlossaryCsv = await _enrichGlossary(
+        glossaryFile: glossaryFile,
+        onUpdate: onUpdate,
+      );
+
+      // Prepare glossary for translation (Pass CSV directly to AIService)
+      final String glossary = enrichedGlossaryCsv;
 
       // Create output path in outputDir
       final String ext = path.extension(filePath);
@@ -195,29 +204,58 @@ class TranslationController {
     }
   }
 
-  /// Converts CSV format to readable prompt format for translation
-  String _convertCsvToPromptFormat(String csvContent) {
-    try {
-      final List<List<dynamic>> rows = const CsvToListConverter().convert(
-        csvContent,
-        eol: '\n',
-        shouldParseNumbers: false,
-      );
+  /// Enriches the glossary by looking up definitions for terms
+  Future<String> _enrichGlossary({
+    required File glossaryFile,
+    required Function(String, double) onUpdate,
+  }) async {
+    if (!await glossaryFile.exists()) return "";
 
-      final StringBuffer buffer = StringBuffer();
-      for (final row in rows) {
-        if (row.length >= 2) {
-          final original = row[0].toString().trim();
-          final vietnamese = row[1].toString().trim();
-          if (original.isNotEmpty && vietnamese.isNotEmpty) {
-            buffer.writeln("$original -> $vietnamese");
-          }
-        }
+    final String content = await glossaryFile.readAsString();
+    List<List<dynamic>> rows = const CsvToListConverter().convert(
+      content,
+      eol: '\n',
+      shouldParseNumbers: false,
+    );
+
+    bool isModified = false;
+    final int totalRows = rows.length;
+
+    for (int i = 0; i < totalRows; i++) {
+      final row = rows[i];
+      if (row.isEmpty) continue;
+
+      // Ensure row has at least 3 columns
+      while (row.length < 3) {
+        row.add(""); // Add empty definition
+        isModified = true;
       }
-      return buffer.toString().trim();
-    } catch (e) {
-      // Fallback: return as-is if CSV parsing fails
-      return csvContent;
+
+      final String original = row[0].toString().trim();
+      // final String vietnamese = row[1].toString().trim();
+      String definition = row[2].toString().trim();
+
+      // If definition is empty, lookup
+      if (definition.isEmpty && original.isNotEmpty) {
+        onUpdate("Đang tra cứu: $original...", 0.35 + (0.05 * (i / totalRows)));
+
+        final String? result = await _webSearchService.lookupTerm(original);
+        if (result != null) {
+          row[2] = result;
+          isModified = true;
+        }
+
+        // Delay to avoid rate limiting
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
     }
+
+    final String newCsv = const ListToCsvConverter().convert(rows, eol: '\n');
+
+    if (isModified) {
+      await glossaryFile.writeAsString(newCsv);
+    }
+
+    return newCsv;
   }
 }
