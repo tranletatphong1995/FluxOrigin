@@ -156,7 +156,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
               value: _useCustomDict,
               onChanged: (value) => setState(() => _useCustomDict = value),
               activeTrackColor: const Color(0xFF043222),
-              activeColor: Colors.white,
+              activeThumbColor: Colors.white,
             ),
           ],
         ),
