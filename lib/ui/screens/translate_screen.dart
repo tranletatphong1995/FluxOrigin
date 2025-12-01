@@ -31,6 +31,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
   // State Machine
   TranslationState _currentState = TranslationState.idle;
   String? _selectedFilePath;
+  String? _selectedDictionaryPath;
   String? _translatedContent;
 
   // Processing State
@@ -690,7 +691,9 @@ class _TranslateScreenState extends State<TranslateScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Tải lên từ điển của bạn',
+                            _selectedDictionaryPath != null
+                                ? path.basename(_selectedDictionaryPath!)
+                                : 'Tải lên từ điển của bạn',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -698,9 +701,13 @@ class _TranslateScreenState extends State<TranslateScreen> {
                                   ? Colors.grey[200]
                                   : Colors.grey[800],
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            '.CSV',
+                            _selectedDictionaryPath != null
+                                ? 'Đã chọn'
+                                : '.CSV',
                             style: TextStyle(
                               fontSize: 12,
                               color: widget.isDark
@@ -713,10 +720,30 @@ class _TranslateScreenState extends State<TranslateScreen> {
                     ),
                     OutlinedButton(
                       onPressed: () async {
-                        await FilePicker.platform.pickFiles(
-                          type: FileType.custom,
-                          allowedExtensions: ['csv'],
-                        );
+                        try {
+                          final result = await FilePicker.platform.pickFiles(
+                            type: FileType.custom,
+                            allowedExtensions: ['csv'],
+                          );
+
+                          if (result != null &&
+                              result.files.single.path != null) {
+                            setState(() {
+                              _selectedDictionaryPath =
+                                  result.files.single.path;
+                            });
+                          }
+                        } catch (e) {
+                          debugPrint("Error picking dictionary: $e");
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Lỗi chọn file: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
                       },
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(
@@ -728,7 +755,9 @@ class _TranslateScreenState extends State<TranslateScreen> {
                             widget.isDark ? Colors.transparent : Colors.white,
                       ),
                       child: Text(
-                        'Chọn file',
+                        _selectedDictionaryPath != null
+                            ? 'Thay đổi'
+                            : 'Chọn file',
                         style: TextStyle(
                           fontSize: 12,
                           color: widget.isDark
