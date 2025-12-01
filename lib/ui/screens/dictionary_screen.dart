@@ -22,25 +22,19 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
       'id': 1,
       'name': 'IT Terminology Base',
       'entries': 1240,
-      'lastUpdated': '2 giờ trước',
-      'type': 'cloud',
-      'status': 'Đã đồng bộ',
+      'fileSize': '2.4 MB',
     },
     {
       'id': 2,
       'name': 'Hợp đồng kinh tế',
       'entries': 850,
-      'lastUpdated': '1 ngày trước',
-      'type': 'local',
-      'status': 'Cục bộ',
+      'fileSize': '850 KB',
     },
     {
       'id': 3,
       'name': 'Marketing Glosary 2024',
       'entries': 320,
-      'lastUpdated': '3 ngày trước',
-      'type': 'cloud',
-      'status': 'Đang tải...',
+      'fileSize': '1.2 MB',
     },
   ];
 
@@ -156,51 +150,23 @@ class _DictionaryScreenState extends State<DictionaryScreen> {
                             Expanded(
                               flex: 1,
                               child: Text(
-                                'SỐ MỤC',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: widget.isDark
-                                      ? Colors.grey[400]
-                                      : Colors.grey[500],
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'LOẠI',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: widget.isDark
-                                      ? Colors.grey[400]
-                                      : Colors.grey[500],
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'CẬP NHẬT',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: widget.isDark
-                                      ? Colors.grey[400]
-                                      : Colors.grey[500],
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'TRẠNG THÁI',
+                                'KÍCH THƯỚC',
                                 textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: widget.isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[500],
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'SỐ TỪ',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -355,6 +321,17 @@ class _DictRowState extends State<_DictRow> {
             Expanded(
               flex: 1,
               child: Text(
+                widget.dict['fileSize'],
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: widget.isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 1,
+              child: Text(
                 widget.dict['entries'].toString(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -362,100 +339,6 @@ class _DictRowState extends State<_DictRow> {
                   fontFamily: 'monospace',
                   color: widget.isDark ? Colors.grey[400] : Colors.grey[600],
                 ),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: widget.dict['type'] == 'cloud'
-                      ? (widget.isDark
-                          ? Colors.blue.withOpacity(0.1)
-                          : Colors.blue[50])
-                      : (widget.isDark ? Colors.grey[800] : Colors.grey[100]),
-                  border: Border.all(
-                    color: widget.dict['type'] == 'cloud'
-                        ? (widget.isDark
-                            ? Colors.blue.withOpacity(0.3)
-                            : Colors.blue[200]!)
-                        : (widget.isDark
-                            ? Colors.grey[600]!
-                            : Colors.grey[200]!),
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FaIcon(
-                      widget.dict['type'] == 'cloud'
-                          ? FontAwesomeIcons.cloud
-                          : FontAwesomeIcons.hardDrive,
-                      size: 10,
-                      color: widget.dict['type'] == 'cloud'
-                          ? (widget.isDark
-                              ? Colors.blue[400]
-                              : Colors.blue[700])
-                          : (widget.isDark
-                              ? Colors.grey[400]
-                              : Colors.grey[600]),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.dict['type'] == 'cloud' ? 'Cloud' : 'Local',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: widget.dict['type'] == 'cloud'
-                            ? (widget.isDark
-                                ? Colors.blue[400]
-                                : Colors.blue[700])
-                            : (widget.isDark
-                                ? Colors.grey[400]
-                                : Colors.grey[600]),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Text(
-                widget.dict['lastUpdated'],
-                style: TextStyle(
-                  fontSize: 12,
-                  color: widget.isDark ? Colors.grey[500] : Colors.grey[600],
-                ),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: widget.dict['status'] == 'Đã đồng bộ'
-                          ? Colors.green
-                          : (widget.dict['status'] == 'Cục bộ'
-                              ? Colors.grey[400]
-                              : Colors.yellow),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.dict['status'],
-                    style: TextStyle(
-                      fontSize: 12,
-                      color:
-                          widget.isDark ? Colors.grey[300] : Colors.grey[700],
-                    ),
-                  ),
-                ],
               ),
             ),
             SizedBox(
