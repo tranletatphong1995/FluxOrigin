@@ -99,4 +99,67 @@ class AIService {
       throw Exception("Failed to connect to Ollama: $e");
     }
   }
+
+  Future<List<String>> getInstalledModels() async {
+    try {
+      final response =
+          await http.get(Uri.parse('http://127.0.0.1:11434/api/tags'));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final List<dynamic> models = data['models'];
+        return models.map<String>((m) => m['name'] as String).toList();
+      } else {
+        print('Failed to load models: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Error getting installed models: $e');
+      return [];
+    }
+  }
+
+  Future<bool> pullModel(
+      String modelName, Function(double progress) onProgress) async {
+    try {
+      final request =
+          http.Request('POST', Uri.parse('http://127.0.0.1:11434/api/pull'));
+      request.body = jsonEncode({"name": modelName, "stream": true});
+      request.headers.addAll({"Content-Type": "application/json"});
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        await response.stream.transform(utf8.decoder).listen((chunk) {
+          // Ollama sends multiple JSON objects in one chunk sometimes, or split across chunks
+          // We need to handle this robustly. For now, simple line splitting.
+          final lines =
+              chunk.split('\n').where((line) => line.trim().isNotEmpty);
+          for (final line in lines) {
+            try {
+              final data = jsonDecode(line);
+              if (data.containsKey('completed') && data.containsKey('total')) {
+                final completed = data['completed'];
+                final total = data['total'];
+                if (total > 0) {
+                  onProgress(completed / total);
+                }
+              } else if (data['status'] == 'success') {
+                onProgress(1.0);
+              }
+            } catch (e) {
+              // Ignore parse errors for partial chunks
+            }
+          }
+        }).asFuture();
+        return true;
+      } else {
+        print('Failed to pull model: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Error pulling model: $e');
+      return false;
+    }
+  }
 }

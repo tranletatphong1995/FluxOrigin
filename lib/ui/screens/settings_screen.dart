@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/config_provider.dart';
 import '../widgets/path_setup_modal.dart';
+import '../../services/ai_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool isDark;
@@ -29,6 +30,61 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'Qwen3-14B',
     'Qwen3-30B-A3B',
   ];
+
+  final AIService _aiService = AIService();
+  List<String> _installedModels = [];
+  Map<String, bool> _downloadingStates = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInstalledModels();
+  }
+
+  Future<void> _checkInstalledModels() async {
+    final models = await _aiService.getInstalledModels();
+    if (mounted) {
+      setState(() {
+        _installedModels = models;
+      });
+    }
+  }
+
+  String _getOllamaModelName(String uiName) {
+    return uiName.toLowerCase().replaceFirst('-', ':');
+  }
+
+  Future<void> _downloadModel(String uiName) async {
+    setState(() {
+      _downloadingStates[uiName] = true;
+    });
+
+    final ollamaName = _getOllamaModelName(uiName);
+    final success = await _aiService.pullModel(ollamaName, (progress) {
+      // Optional: Handle progress update if needed
+    });
+
+    if (mounted) {
+      setState(() {
+        _downloadingStates[uiName] = false;
+      });
+
+      if (success) {
+        await _checkInstalledModels();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Tải model $uiName thành công!')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Tải model $uiName thất bại.')),
+          );
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -201,6 +257,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     children: _models.map((model) {
                       final isSelected = model == _selectedModel;
+                      final ollamaName = _getOllamaModelName(model);
+                      final isInstalled = _installedModels.contains(ollamaName);
+                      final isDownloading = _downloadingStates[model] == true;
+
                       return InkWell(
                         onTap: () {
                           setState(() {
@@ -209,7 +269,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           });
                         },
                         child: Container(
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? (widget.isDark
@@ -238,7 +299,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 ),
                               ),
-                              if (isSelected)
+                              if (isDownloading)
+                                const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              else if (!isInstalled)
+                                IconButton(
+                                  icon: FaIcon(
+                                    FontAwesomeIcons.download,
+                                    size: 14,
+                                    color: widget.isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
+                                  ),
+                                  onPressed: () => _downloadModel(model),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                )
+                              else if (isSelected)
                                 FaIcon(
                                   FontAwesomeIcons.check,
                                   size: 12,
