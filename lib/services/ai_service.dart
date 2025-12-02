@@ -460,4 +460,18 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
       // Silent failure
     }
   }
+
+  /// Delete a model from Ollama
+  Future<bool> deleteModel(String modelName) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('http://127.0.0.1:11434/api/delete'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"name": modelName}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 }

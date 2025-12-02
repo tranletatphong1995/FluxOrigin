@@ -123,6 +123,18 @@ class _SettingsScreenState extends State<SettingsScreen>
     }
   }
 
+  void _showManageModelsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _ManageModelsDialog(
+        isDark: widget.isDark,
+        installedModels: _installedModels,
+        aiService: _aiService,
+        onModelsChanged: _checkInstalledModels,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -390,6 +402,37 @@ class _SettingsScreenState extends State<SettingsScreen>
                     }).toList(),
                   ),
                 ).animate().fadeIn(),
+
+              const SizedBox(height: 16),
+
+              // Manage Downloaded Models
+              Container(
+                decoration: BoxDecoration(
+                  color: widget.isDark ? AppColors.darkSurface : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: widget.isDark
+                        ? AppColors.darkBorder
+                        : AppColors.lightBorder,
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () => _showManageModelsDialog(context),
+                  borderRadius: BorderRadius.circular(12),
+                  child: _SettingRow(
+                    title: 'Quản lý Model đã tải',
+                    subtitle: '${_installedModels.length} model đã cài đặt',
+                    isDark: widget.isDark,
+                    trailing: FaIcon(
+                      FontAwesomeIcons.hardDrive,
+                      size: 16,
+                      color: widget.isDark
+                          ? Colors.grey[400]
+                          : AppColors.lightPrimary.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 32),
 
@@ -681,7 +724,7 @@ class _SettingRow extends StatelessWidget {
                     fontSize: 14,
                     color: isDark
                         ? Colors.grey[500]
-                        : AppColors.lightPrimary.withOpacity(0.6),
+                        : AppColors.lightPrimary.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -691,5 +734,338 @@ class _SettingRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _ManageModelsDialog extends StatefulWidget {
+  final bool isDark;
+  final List<String> installedModels;
+  final AIService aiService;
+  final VoidCallback onModelsChanged;
+
+  const _ManageModelsDialog({
+    required this.isDark,
+    required this.installedModels,
+    required this.aiService,
+    required this.onModelsChanged,
+  });
+
+  @override
+  State<_ManageModelsDialog> createState() => _ManageModelsDialogState();
+}
+
+class _ManageModelsDialogState extends State<_ManageModelsDialog> {
+  late List<String> _models;
+  final Set<String> _deletingModels = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _models = List.from(widget.installedModels);
+  }
+
+  Future<void> _deleteModel(String modelName) async {
+    setState(() {
+      _deletingModels.add(modelName);
+    });
+
+    final success = await widget.aiService.deleteModel(modelName);
+
+    if (mounted) {
+      setState(() {
+        _deletingModels.remove(modelName);
+        if (success) {
+          _models.remove(modelName);
+        }
+      });
+
+      if (success) {
+        widget.onModelsChanged();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Đã xóa model $modelName')),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Xóa model $modelName thất bại')),
+          );
+        }
+      }
+    }
+  }
+
+  void _confirmDelete(String modelName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: widget.isDark ? AppColors.darkSurface : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Xác nhận xóa',
+          style: TextStyle(
+            color: widget.isDark ? Colors.white : AppColors.lightPrimary,
+          ),
+        ),
+        content: Text(
+          'Bạn có chắc muốn xóa model "$modelName"?',
+          style: TextStyle(
+            color: widget.isDark ? Colors.grey[300] : Colors.grey[700],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Hủy',
+              style: TextStyle(
+                color: widget.isDark ? Colors.grey[400] : Colors.grey[600],
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteModel(modelName);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[600],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: 500,
+        constraints: const BoxConstraints(maxHeight: 500),
+        decoration: BoxDecoration(
+          color: widget.isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: widget.isDark ? const Color(0xFF444444) : Colors.grey[200]!,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: widget.isDark
+                        ? const Color(0xFF444444)
+                        : Colors.grey[200]!,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  FaIcon(
+                    FontAwesomeIcons.hardDrive,
+                    size: 18,
+                    color:
+                        widget.isDark ? Colors.white : AppColors.lightPrimary,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Quản lý Model đã tải',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Merriweather',
+                        color: widget.isDark
+                            ? Colors.white
+                            : AppColors.lightPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: FaIcon(
+                      FontAwesomeIcons.xmark,
+                      size: 20,
+                      color:
+                          widget.isDark ? Colors.grey[400] : Colors.grey[500],
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: widget.isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.grey[100],
+                      shape: const CircleBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Body
+            Flexible(
+              child: _models.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FaIcon(
+                            FontAwesomeIcons.boxOpen,
+                            size: 48,
+                            color: widget.isDark
+                                ? Colors.grey[600]
+                                : Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Chưa có model nào được tải',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: widget.isDark
+                                  ? Colors.grey[500]
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _models.length,
+                      itemBuilder: (context, index) {
+                        final model = _models[index];
+                        final isDeleting = _deletingModels.contains(model);
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            border: index < _models.length - 1
+                                ? Border(
+                                    bottom: BorderSide(
+                                      color: widget.isDark
+                                          ? AppColors.darkBorder
+                                          : AppColors.lightBorder,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          child: Row(
+                            children: [
+                              FaIcon(
+                                FontAwesomeIcons.cube,
+                                size: 14,
+                                color: widget.isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  model,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: widget.isDark
+                                        ? Colors.grey[200]
+                                        : AppColors.lightPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (isDeleting)
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: widget.isDark
+                                        ? Colors.white
+                                        : AppColors.lightPrimary,
+                                  ),
+                                )
+                              else
+                                IconButton(
+                                  onPressed: () => _confirmDelete(model),
+                                  icon: FaIcon(
+                                    FontAwesomeIcons.trash,
+                                    size: 14,
+                                    color: Colors.red[400],
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  tooltip: 'Xóa model',
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+
+            // Footer
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(
+                    color: widget.isDark
+                        ? const Color(0xFF444444)
+                        : Colors.grey[200]!,
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: widget.isDark
+                          ? Colors.white
+                          : AppColors.lightPrimary,
+                      foregroundColor:
+                          widget.isDark ? Colors.black : Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Đóng',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().scale(
+          begin: const Offset(0.95, 0.95),
+          end: const Offset(1, 1),
+          duration: const Duration(milliseconds: 200),
+        );
   }
 }
