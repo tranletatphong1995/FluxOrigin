@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class AIService {
   static const String _baseUrl = 'http://127.0.0.1:11434/api/chat';
-  static const String _model = 'qwen2.5:7b'; // Default model, can be changed
+  // static const String _model = 'qwen2.5:7b'; // Removed hardcoded model
 
   static const Map<String, String> _prompts = {
     "KIEMHIEP":
@@ -17,8 +17,9 @@ class AIService {
         "Bạn là một dịch giả chuyên nghiệp. Hãy dịch trôi chảy, tự nhiên, sát nghĩa gốc."
   };
 
-  Future<String> detectGenre(String sample) async {
+  Future<String> detectGenre(String sample, String modelName) async {
     final response = await _chatCompletion(
+      modelName: modelName,
       messages: [
         {
           "role": "user",
@@ -42,8 +43,8 @@ class AIService {
     return _prompts["KHAC"]!;
   }
 
-  Future<String> generateGlossary(String sample) async {
-    final response = await _chatCompletion(messages: [
+  Future<String> generateGlossary(String sample, String modelName) async {
+    final response = await _chatCompletion(modelName: modelName, messages: [
       {
         "role": "user",
         "content":
@@ -55,8 +56,8 @@ class AIService {
     return response.trim();
   }
 
-  Future<String> translateChunk(
-      String chunk, String systemPrompt, String glossaryCsv) async {
+  Future<String> translateChunk(String chunk, String systemPrompt,
+      String glossaryCsv, String modelName) async {
     // Parse CSV to formatted string
     String formattedGlossary = "";
     try {
@@ -90,7 +91,7 @@ class AIService {
     final fullSystemPrompt =
         "$systemPrompt\n\n### BẮT BUỘC TUÂN THỦ TỪ ĐIỂN (GLOSSARY):\n$formattedGlossary\n\n### YÊU CẦU DỊCH THUẬT NÂNG CAO:\n1. Dịch CHI TIẾT từng câu, tuyệt đối KHÔNG được tóm tắt hay bỏ sót ý.\n2. Giữ nguyên sắc thái biểu cảm, các thán từ, mô tả nội tâm của nhân vật.\n3. Nếu gặp thơ ca hoặc câu đối, hãy dịch sao cho vần điệu hoặc giữ nguyên Hán Việt nếu cần.\n4. Văn phong phải trôi chảy, tự nhiên như người bản xứ viết.";
 
-    return await _chatCompletion(messages: [
+    return await _chatCompletion(modelName: modelName, messages: [
       {"role": "system", "content": fullSystemPrompt},
       {
         "role": "user",
@@ -103,11 +104,20 @@ class AIService {
   }
 
   Future<String> _chatCompletion(
-      {required List<Map<String, String>> messages,
+      {required String modelName,
+      required List<Map<String, String>> messages,
       Map<String, dynamic>? options}) async {
     try {
+      // Convert display name to Ollama tag if needed (simple heuristic)
+      // Assuming the UI passes "Qwen2.5-0.5B" or "qwen2.5:0.5b"
+      // Ideally, the UI should pass the correct tag.
+      // But let's ensure it's lowercased and has colon if it was dash.
+      // Actually, let's trust the caller passes the correct tag or handle it in UI.
+      // But for safety against "Qwen2.5-7B" format:
+      final String finalModel = modelName.toLowerCase().replaceAll('-', ':');
+
       final body = {
-        "model": _model,
+        "model": finalModel,
         "messages": messages,
         "stream": false,
         if (options != null) "options": options,

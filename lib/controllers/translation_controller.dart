@@ -16,6 +16,7 @@ class TranslationController {
   Future<String> processFile({
     required String filePath,
     required String dictionaryDir,
+    required String modelName,
     required Function(String status, double progress) onUpdate,
   }) async {
     final String fileName = path.basenameWithoutExtension(filePath);
@@ -42,10 +43,12 @@ class TranslationController {
       final String sample = TextProcessor.createSample(content);
 
       onUpdate("AI đang đọc thử để xác định thể loại...", 0.2);
-      final String systemPrompt = await _aiService.detectGenre(sample);
+      final String systemPrompt =
+          await _aiService.detectGenre(sample, modelName);
 
       onUpdate("AI đang tạo từ điển tên riêng...", 0.3);
-      final String glossaryCsv = await _aiService.generateGlossary(sample);
+      final String glossaryCsv =
+          await _aiService.generateGlossary(sample, modelName);
 
       // Smart Merge: Merge AI glossary with existing user CSV
       final glossaryFile =
@@ -103,7 +106,7 @@ class TranslationController {
       try {
         final String chunk = progress.rawChunks[i];
         final String translated = await _aiService.translateChunk(
-            chunk, progress.systemPrompt, progress.glossary);
+            chunk, progress.systemPrompt, progress.glossary, modelName);
 
         progress.translatedChunks[i] = translated;
         progress.currentIndex = i + 1;

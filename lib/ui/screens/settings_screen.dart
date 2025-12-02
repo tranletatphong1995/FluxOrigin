@@ -18,7 +18,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _selectedModel = 'Qwen2.5-7B';
+  // String _selectedModel = 'Qwen2.5-7B'; // Removed local state
   bool _isModelDropdownOpen = false;
 
   final List<String> _models = [
@@ -218,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _selectedModel,
+                            context.watch<ConfigProvider>().selectedModel,
                             style: TextStyle(
                               fontSize: 14,
                               color: widget.isDark
@@ -256,7 +256,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   child: Column(
                     children: _models.map((model) {
-                      final isSelected = model == _selectedModel;
+                      final configProvider = context.read<ConfigProvider>();
+                      final isSelected = model == configProvider.selectedModel;
                       final ollamaName = _getOllamaModelName(model);
                       final isInstalled = _installedModels.contains(ollamaName);
                       final isDownloading = _downloadingStates[model] == true;
@@ -264,7 +265,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       return InkWell(
                         onTap: () {
                           setState(() {
-                            _selectedModel = model;
+                            // _selectedModel = model; // Removed local state update
+                            context
+                                .read<ConfigProvider>()
+                                .setSelectedModel(model);
                             _isModelDropdownOpen = false;
                           });
                         },

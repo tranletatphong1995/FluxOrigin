@@ -101,6 +101,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
       final result = await _controller.processFile(
         filePath: _selectedFilePath!,
         dictionaryDir: configProvider.dictionaryDir,
+        modelName: configProvider.selectedModel,
         onUpdate: (status, progress) {
           if (mounted) {
             setState(() {

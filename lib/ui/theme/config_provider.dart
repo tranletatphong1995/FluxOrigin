@@ -4,11 +4,14 @@ import 'package:path/path.dart' as path;
 
 class ConfigProvider extends ChangeNotifier {
   static const String _projectPathKey = 'project_path';
+  static const String _selectedModelKey = 'selected_model';
 
   String _projectPath = '';
+  String _selectedModel = 'qwen2.5:7b'; // Default model
   bool _isLoading = true;
 
   String get projectPath => _projectPath;
+  String get selectedModel => _selectedModel;
   bool get isLoading => _isLoading;
 
   bool get isConfigured => _projectPath.isNotEmpty;
@@ -26,6 +29,7 @@ class ConfigProvider extends ChangeNotifier {
 
     final prefs = await SharedPreferences.getInstance();
     _projectPath = prefs.getString(_projectPathKey) ?? '';
+    _selectedModel = prefs.getString(_selectedModelKey) ?? 'qwen2.5:7b';
 
     _isLoading = false;
     notifyListeners();
@@ -36,6 +40,14 @@ class ConfigProvider extends ChangeNotifier {
     await prefs.setString(_projectPathKey, projectPath);
 
     _projectPath = projectPath;
+    notifyListeners();
+  }
+
+  Future<void> setSelectedModel(String model) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedModelKey, model);
+
+    _selectedModel = model;
     notifyListeners();
   }
 }
