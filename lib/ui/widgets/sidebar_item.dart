@@ -46,6 +46,7 @@ class _SidebarItemState extends State<SidebarItem> {
                 : AppColors.lightPrimary.withOpacity(0.7)));
 
     return MouseRegion(
+      cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(

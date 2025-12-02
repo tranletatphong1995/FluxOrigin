@@ -298,7 +298,14 @@ class _TranslateScreenState extends State<TranslateScreen> {
                 child: LanguageSelector(
                   value: _sourceLang,
                   isDark: widget.isDark,
-                  onChange: (lang) => setState(() => _sourceLang = lang),
+                  onChange: (lang) {
+                    setState(() {
+                      if (lang == _targetLang) {
+                        _targetLang = _sourceLang;
+                      }
+                      _sourceLang = lang;
+                    });
+                  },
                   availableLanguages: _allLanguages,
                 ),
               ),
@@ -327,6 +334,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
                   isDark: widget.isDark,
                   onChange: (lang) => setState(() => _targetLang = lang),
                   availableLanguages: _allLanguages,
+                  disabledLanguage: _sourceLang,
                 ),
               ),
             ],
@@ -497,7 +505,8 @@ class _TranslateScreenState extends State<TranslateScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _startTranslation(resume: _hasExistingProgress),
+                onPressed: () =>
+                    _startTranslation(resume: _hasExistingProgress),
                 icon: _hasExistingProgress
                     ? const FaIcon(FontAwesomeIcons.play, size: 14)
                     : const SizedBox.shrink(),
@@ -900,9 +909,8 @@ class _TranslateScreenState extends State<TranslateScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontStyle: FontStyle.italic,
-                        color: widget.isDark
-                            ? Colors.grey[500]
-                            : Colors.grey[600],
+                        color:
+                            widget.isDark ? Colors.grey[500] : Colors.grey[600],
                       ),
                     ),
                   ],
@@ -975,5 +983,3 @@ class _TranslateScreenState extends State<TranslateScreen> {
     ).animate().fadeIn();
   }
 }
-
-

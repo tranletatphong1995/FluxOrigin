@@ -7,6 +7,7 @@ class LanguageSelector extends StatefulWidget {
   final bool isDark;
   final Function(String) onChange;
   final List<String> availableLanguages;
+  final String? disabledLanguage;
 
   const LanguageSelector({
     super.key,
@@ -14,6 +15,7 @@ class LanguageSelector extends StatefulWidget {
     required this.isDark,
     required this.onChange,
     required this.availableLanguages,
+    this.disabledLanguage,
   });
 
   @override
@@ -85,11 +87,14 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                       mainAxisSize: MainAxisSize.min,
                       children: widget.availableLanguages.map((lang) {
                         final isSelected = lang == widget.value;
+                        final isDisabled = lang == widget.disabledLanguage;
                         return InkWell(
-                          onTap: () {
-                            widget.onChange(lang);
-                            _removeOverlay();
-                          },
+                          onTap: isDisabled
+                              ? null
+                              : () {
+                                  widget.onChange(lang);
+                                  _removeOverlay();
+                                },
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12),
@@ -100,59 +105,7 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                                       : AppColors.lightPrimary.withOpacity(0.1))
                                   : Colors.transparent,
                             ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: widget.isDark
-                                        ? Colors.white.withOpacity(0.2)
-                                        : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      lang.substring(6, 8).toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: widget.isDark
-                                            ? Colors.white
-                                            : Colors.grey[500],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    lang,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: isSelected
-                                          ? (widget.isDark
-                                              ? Colors.white
-                                              : AppColors.lightPrimary)
-                                          : (widget.isDark
-                                              ? Colors.grey[300]
-                                              : Colors.grey[600]),
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                                if (isSelected)
-                                  FaIcon(
-                                    FontAwesomeIcons.check,
-                                    size: 12,
-                                    color: widget.isDark
-                                        ? Colors.white
-                                        : AppColors.lightPrimary,
-                                  ),
-                              ],
-                            ),
+                            child: _buildLanguageItem(lang, isSelected),
                           ),
                         );
                       }).toList(),
@@ -167,71 +120,148 @@ class _LanguageSelectorState extends State<LanguageSelector> {
     );
   }
 
+  Widget _buildLanguageItem(String lang, bool isSelected) {
+    final isDisabled = lang == widget.disabledLanguage;
+
+    return IgnorePointer(
+      ignoring: isDisabled,
+      child: Opacity(
+        opacity: isDisabled ? 0.5 : 1.0,
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? Colors.white.withOpacity(0.2)
+                    : Colors.grey[100],
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Center(
+                child: Text(
+                  _getLanguageCode(lang),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: widget.isDark ? Colors.white : Colors.grey[500],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                lang,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isDisabled
+                      ? Colors.grey
+                      : (isSelected
+                          ? (widget.isDark
+                              ? Colors.white
+                              : AppColors.lightPrimary)
+                          : (widget.isDark
+                              ? Colors.grey[300]
+                              : Colors.grey[600])),
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  decoration: null,
+                ),
+              ),
+            ),
+            if (isSelected)
+              FaIcon(
+                FontAwesomeIcons.check,
+                size: 12,
+                color: widget.isDark ? Colors.white : AppColors.lightPrimary,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: GestureDetector(
-        onTap: _toggleDropdown,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: widget.isDark ? AppColors.darkSurface : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: widget.isDark
-                  ? const Color(0xFF444444)
-                  : AppColors.lightBorder,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: _toggleDropdown,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: widget.isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: widget.isDark
+                    ? const Color(0xFF444444)
+                    : AppColors.lightBorder,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: widget.isDark
-                      ? Colors.white.withOpacity(0.1)
-                      : AppColors.lightPrimary.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(4),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: widget.isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : AppColors.lightPrimary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _getLanguageCode(widget.value),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: widget.isDark
+                            ? Colors.white.withOpacity(0.8)
+                            : AppColors.lightPrimary,
+                      ),
+                    ),
+                  ),
                 ),
-                child: Center(
+                const SizedBox(width: 12),
+                Expanded(
                   child: Text(
-                    widget.value.substring(6, 8).toUpperCase(),
+                    widget.value,
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                       color: widget.isDark
-                          ? Colors.white.withOpacity(0.8)
+                          ? Colors.grey[200]
                           : AppColors.lightPrimary,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.value,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: widget.isDark
-                        ? Colors.grey[200]
-                        : AppColors.lightPrimary,
-                  ),
+                FaIcon(
+                  _isOpen
+                      ? FontAwesomeIcons.chevronUp
+                      : FontAwesomeIcons.chevronDown,
+                  size: 12,
+                  color: widget.isDark ? Colors.grey : Colors.grey[600],
                 ),
-              ),
-              FaIcon(
-                _isOpen
-                    ? FontAwesomeIcons.chevronUp
-                    : FontAwesomeIcons.chevronDown,
-                size: 12,
-                color: widget.isDark ? Colors.grey : Colors.grey[600],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  String _getLanguageCode(String lang) {
+    switch (lang) {
+      case 'Tiếng Anh':
+        return 'EN';
+      case 'Tiếng Trung':
+        return 'CN';
+      case 'Tiếng Việt':
+        return 'VI';
+      default:
+        return lang.length >= 2 ? lang.substring(0, 2).toUpperCase() : lang;
+    }
   }
 }

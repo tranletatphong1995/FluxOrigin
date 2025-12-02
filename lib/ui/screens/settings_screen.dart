@@ -247,46 +247,50 @@ class _SettingsScreenState extends State<SettingsScreen>
                   title: 'Mô hình dịch thuật',
                   subtitle: 'Chọn mô hình ngôn ngữ chính',
                   isDark: widget.isDark,
-                  trailing: GestureDetector(
-                    onTap: () => setState(
-                        () => _isModelDropdownOpen = !_isModelDropdownOpen),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      constraints: const BoxConstraints(minWidth: 140),
-                      decoration: BoxDecoration(
-                        color: widget.isDark
-                            ? Colors.black.withValues(alpha: 0.2)
-                            : AppColors.lightPaper,
-                        border: Border.all(
+                  trailing: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => setState(
+                          () => _isModelDropdownOpen = !_isModelDropdownOpen),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        constraints: const BoxConstraints(minWidth: 140),
+                        decoration: BoxDecoration(
                           color: widget.isDark
-                              ? const Color(0xFF444444)
-                              : AppColors.lightBorder,
+                              ? Colors.black.withValues(alpha: 0.2)
+                              : AppColors.lightPaper,
+                          border: Border.all(
+                            color: widget.isDark
+                                ? const Color(0xFF444444)
+                                : AppColors.lightBorder,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            context.watch<ConfigProvider>().selectedModel,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: widget.isDark
-                                  ? Colors.grey[300]
-                                  : AppColors.lightPrimary,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              context.watch<ConfigProvider>().selectedModel,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: widget.isDark
+                                    ? Colors.grey[300]
+                                    : AppColors.lightPrimary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          FaIcon(
-                            _isModelDropdownOpen
-                                ? FontAwesomeIcons.chevronUp
-                                : FontAwesomeIcons.chevronDown,
-                            size: 12,
-                            color:
-                                widget.isDark ? Colors.grey : Colors.grey[600],
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            FaIcon(
+                              _isModelDropdownOpen
+                                  ? FontAwesomeIcons.chevronUp
+                                  : FontAwesomeIcons.chevronDown,
+                              size: 12,
+                              color: widget.isDark
+                                  ? Colors.grey
+                                  : Colors.grey[600],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -529,7 +533,6 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
               const SizedBox(height: 16),
-
             ],
           ),
         ),
@@ -966,9 +969,8 @@ class _ManageModelsDialogState extends State<_ManageModelsDialog> {
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: widget.isDark
-                          ? Colors.white
-                          : AppColors.lightPrimary,
+                      backgroundColor:
+                          widget.isDark ? Colors.white : AppColors.lightPrimary,
                       foregroundColor:
                           widget.isDark ? Colors.black : Colors.white,
                       padding: const EdgeInsets.symmetric(
