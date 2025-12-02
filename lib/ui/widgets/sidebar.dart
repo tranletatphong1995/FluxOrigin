@@ -33,8 +33,10 @@ class Sidebar extends StatelessWidget {
         children: [
           // App Branding Header
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24.0),
-            child: Center(
+            // Sửa thành: chỉ padding Trên, Dưới và Trái (16px bằng với menu)
+            padding: const EdgeInsets.only(top: 24.0, bottom: 24.0, left: 16.0), 
+            child: Align( 
+              alignment: Alignment.centerLeft, // Bắt buộc căn trái
               child: RichText(
                 text: TextSpan(
                   style: GoogleFonts.merriweather(

@@ -513,6 +513,23 @@ class _SettingsScreenState extends State<SettingsScreen>
                 ),
               ),
 
+              // Footer Credit
+              const SizedBox(height: 48),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Text(
+                  'FluxOrigin v1.0.0 - Made with ☕ by d-init-d',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontFamily: 'Consolas',
+                    color: widget.isDark
+                        ? Colors.grey.withValues(alpha: 0.6)
+                        : const Color(0xFF888888),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
             ],
           ),
         ),
