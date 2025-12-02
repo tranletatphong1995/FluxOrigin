@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 
 class AIService {
   static const String _baseUrl = 'http://127.0.0.1:11434/api/chat';
-  // static const String _model = 'qwen2.5:7b'; // Removed hardcoded model
 
   static const Map<String, String> _prompts = {
     "KIEMHIEP":
@@ -30,11 +29,9 @@ class AIService {
     );
 
     final genre = response.trim().toUpperCase();
-    // Basic validation to ensure we got a valid key, otherwise default to KHAC
     if (_prompts.containsKey(genre)) {
       return genre;
     }
-    // Try to find the keyword if the AI was chatty
     for (final key in _prompts.keys) {
       if (genre.contains(key)) {
         return key;
@@ -51,7 +48,6 @@ class AIService {
     } else if (targetLanguage == 'Tiếng Trung') {
       return "You are a professional translator. Translate the text into Standard Chinese (Simplified). Use appropriate idioms (Chengyu) where fitting.";
     } else {
-      // Default fallback
       return "You are a professional translator. Translate the text into $targetLanguage.";
     }
   }
@@ -67,7 +63,6 @@ class AIService {
       "num_predict": 3000
     });
 
-    // Sanitize the output
     final List<String> lines = response.split('\n');
     final StringBuffer cleanBuffer = StringBuffer();
 
@@ -75,7 +70,6 @@ class AIService {
       final trimmed = line.trim();
       if (trimmed.isEmpty) continue;
 
-      // Reject conversational fillers
       final lower = trimmed.toLowerCase();
       if (lower.startsWith("sure") ||
           lower.startsWith("here") ||
@@ -88,22 +82,17 @@ class AIService {
         continue;
       }
 
-      // Reject lines ending with colon (often headers like "Here is the list:")
-      // BUT we want to be careful not to reject "Term: Definition" if that's the format
-      // So only reject if it looks like a header (no comma, no dash, just text ending in colon)
       if (trimmed.endsWith(':') &&
           !trimmed.contains(',') &&
           !trimmed.contains('-')) {
         continue;
       }
 
-      // Robust parsing: Try comma, then colon, then dash
       String? original;
       String? vietnamese;
       String? definition;
 
       if (trimmed.contains(',')) {
-        // CSV format
         final parts = trimmed.split(',');
         if (parts.length >= 2) {
           original = parts[0].trim();
@@ -111,7 +100,6 @@ class AIService {
           if (parts.length > 2) definition = parts.sublist(2).join(',').trim();
         }
       } else if (trimmed.contains(':')) {
-        // "Term: Definition" format
         final parts = trimmed.split(':');
         if (parts.length >= 2) {
           original = parts[0].trim();
@@ -119,7 +107,6 @@ class AIService {
           if (parts.length > 2) definition = parts.sublist(2).join(':').trim();
         }
       } else if (trimmed.contains('-')) {
-        // "Term - Definition" format
         final parts = trimmed.split('-');
         if (parts.length >= 2) {
           original = parts[0].trim();
@@ -132,10 +119,7 @@ class AIService {
           vietnamese != null &&
           original.isNotEmpty &&
           vietnamese.isNotEmpty) {
-        // Basic validation: Definition shouldn't be too long (likely a sentence)
         if (vietnamese.length > 100) continue;
-
-        // Re-construct as CSV for consistency
         cleanBuffer.writeln(
             '"$original","$vietnamese"${definition != null ? ',"$definition"' : ''}');
       }
@@ -152,22 +136,25 @@ class AIService {
     String targetLanguage, {
     String? previousContext,
   }) async {
-    // 1. Adaptive Prompting Logic
     final isSmallModel = modelName.toLowerCase().contains("0.5b") ||
         modelName.toLowerCase().contains("1.5b");
 
+    // LAYER 3: Strict Constraints to prevent garbage output
     String constraints = "";
     if (targetLanguage == 'Tiếng Việt') {
       constraints = """
 CRITICAL OUTPUT RULES:
-1. **STRATEGY:** Use Hán-Việt (Sino-Vietnamese) for all Wuxia/Cultivation terms.
-2. **FORMAT:** If a term is ambiguous, write the Vietnamese first, followed by the original in brackets. Example: 'Hắc Thiết Kiếm (黑铁剑)'.
-3. **NO CHINESE CHARACTERS ALONE:** Do not output Chinese characters without their Vietnamese translation.
-4. **NO TRANSLATOR NOTES:** Do not add footnotes or explanations.
+1. Translate to natural Vietnamese.
+2. **NEVER** use Chinese punctuation (， 。 ： ！ ？). Use standard ASCII punctuation ( , . : ! ? ).
+3. **NEVER** output English words or nonsense/hallucinated words.
+4. If the source sentence is cut off, finish it logically based on context.
+5. **STRATEGY:** Use Hán-Việt (Sino-Vietnamese) for all Wuxia/Cultivation terms.
+6. **FORMAT:** If a term is ambiguous, write the Vietnamese first, followed by the original in brackets. Example: 'Hắc Thiết Kiếm (黑铁剑)'.
+7. **NO CHINESE CHARACTERS ALONE:** Do not output Chinese characters without their Vietnamese translation.
+8. **NO TRANSLATOR NOTES:** Do not add footnotes or explanations.
 """;
     }
 
-    // Build context instruction if previous context is provided
     String contextInstruction = "";
     if (previousContext != null && previousContext.isNotEmpty) {
       contextInstruction = """
@@ -182,25 +169,21 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
 
     String finalSystemPrompt;
     if (isSmallModel) {
-      // Simple prompt for small models
       finalSystemPrompt =
           "You are a professional translator. Translate the following text into $targetLanguage. Output ONLY the translation. Do not repeat the input.\n$constraints";
       if (contextInstruction.isNotEmpty) {
         finalSystemPrompt += "\n$contextInstruction";
       }
     } else {
-      // Advanced prompt for large models
       if (targetLanguage == 'Tiếng Việt') {
         finalSystemPrompt =
             "$systemPrompt\n\n$constraints\n\n$contextInstruction### YÊU CẦU DỊCH THUẬT NÂNG CAO:\n1. Dịch CHI TIẾT từng câu, tuyệt đối KHÔNG được tóm tắt hay bỏ sót ý.\n2. Giữ nguyên sắc thái biểu cảm, các thán từ, mô tả nội tâm của nhân vật.\n3. Nếu gặp thơ ca hoặc câu đối, hãy dịch sao cho vần điệu hoặc giữ nguyên Hán Việt nếu cần.\n4. Văn phong phải trôi chảy, tự nhiên như người bản xứ viết.\n\nOUTPUT ONLY THE VIETNAMESE TRANSLATION. NO PREAMBLE.";
       } else {
-        // For other languages, just use the system prompt + standard instruction
         finalSystemPrompt =
             "$systemPrompt\n\n$contextInstruction\nOUTPUT ONLY THE TRANSLATION. NO PREAMBLE.";
       }
     }
 
-    // Parse CSV to formatted string (Glossary)
     String formattedGlossary = "";
     try {
       final List<List<dynamic>> rows = const CsvToListConverter().convert(
@@ -217,7 +200,6 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
           final definition = row.length > 2 ? row[2].toString().trim() : "";
 
           if (original.isNotEmpty && vietnamese.isNotEmpty) {
-            // Simplified glossary format for small models to avoid confusion
             if (isSmallModel) {
               buffer.write("$original: $vietnamese\n");
             } else {
@@ -232,10 +214,9 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
       }
       formattedGlossary = buffer.toString().trim();
     } catch (e) {
-      formattedGlossary = glossaryCsv; // Fallback
+      formattedGlossary = glossaryCsv;
     }
 
-    // Append Glossary to System Prompt
     if (formattedGlossary.isNotEmpty) {
       finalSystemPrompt += "\n\n### GLOSSARY:\n$formattedGlossary";
     }
@@ -248,13 +229,11 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
             "Translate the following text into $targetLanguage:\n\n$chunk"
       }
     ], options: {
-      "timeout":
-          28800000 // 8 hours, though http client timeout handles this mostly
+      "timeout": 28800000
     });
 
     final cleaned = _cleanResponse(rawResponse, targetLanguage);
 
-    // Post-processing: Check for garbage output (only punctuation/symbols)
     if (_isGarbageOutput(cleaned)) {
       return "";
     }
@@ -266,25 +245,57 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
   bool _isGarbageOutput(String text) {
     if (text.isEmpty) return true;
 
-    // Remove all punctuation, symbols, and whitespace
     final contentOnly = text.replaceAll(
         RegExp(r'[\s\p{P}\p{S}]+', unicode: true), '');
 
-    // If nothing meaningful remains, it's garbage
     if (contentOnly.isEmpty) return true;
-
-    // If content is too short relative to original (likely hallucination remnants)
     if (contentOnly.length < 3 && text.length > 10) return true;
 
     return false;
   }
 
+  /// LAYER 2: Aggressive String Sanitization
   String _cleanResponse(String raw, String targetLang) {
     if (targetLang == 'Tiếng Trung') {
       return raw.trim();
     }
 
     String clean = raw.trim();
+
+    // BRUTE FORCE: Normalize Chinese/Weird Punctuation FIRST
+    clean = clean.replaceAll('。', '. ');
+    clean = clean.replaceAll('，', ', ');
+    clean = clean.replaceAll('、', ', ');
+    clean = clean.replaceAll('：', ': ');
+    clean = clean.replaceAll('？', '? ');
+    clean = clean.replaceAll('！', '! ');
+    clean = clean.replaceAll('"', '"');
+    clean = clean.replaceAll('"', '"');
+    clean = clean.replaceAll(''', "'");
+    clean = clean.replaceAll(''', "'");
+    clean = clean.replaceAll('（', '(');
+    clean = clean.replaceAll('）', ')');
+    clean = clean.replaceAll('《', '"');
+    clean = clean.replaceAll('》', '"');
+    clean = clean.replaceAll('…', '...');
+    clean = clean.replaceAll('～', '~');
+    clean = clean.replaceAll('·', ' ');
+    clean = clean.replaceAll('—', '-');
+    clean = clean.replaceAll('–', '-');
+
+    // Remove Hallucinated Symbol Sequences - filter out lines that are ONLY punctuation
+    final lines = clean.split('\n');
+    final cleanedLines = <String>[];
+    final punctOnlyPattern = RegExp(r'^[\s.,;:!?\-"' "'" r'()\[\]{}]+' + r'$');
+    for (final line in lines) {
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) continue;
+      if (punctOnlyPattern.hasMatch(trimmedLine)) {
+        continue;
+      }
+      cleanedLines.add(line);
+    }
+    clean = cleanedLines.join('\n');
 
     // Standard cleaning (quotes)
     if (clean.startsWith('"') && clean.endsWith('"')) {
@@ -293,67 +304,66 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
       clean = clean.substring(1, clean.length - 1);
     }
 
-    // Strip prompt repetition (simple heuristic)
-    final lines = clean.split('\n');
-    if (lines.isNotEmpty) {
-      final firstLine = lines.first.toLowerCase();
+    // Strip prompt repetition
+    final processedLines = clean.split('\n');
+    if (processedLines.isNotEmpty) {
+      final firstLine = processedLines.first.toLowerCase();
       if (firstLine.contains("dịch đoạn văn bản") ||
           firstLine.contains("translate the following")) {
-        clean = lines.sublist(1).join('\n').trim();
+        clean = processedLines.sublist(1).join('\n').trim();
       }
     }
 
     if (targetLang == 'Tiếng Việt') {
-      // Smart Cleaning for Vietnamese
-      // 1. Remove parenthesized Chinese: (黑铁剑) or [黑铁剑]
-      clean = clean.replaceAll(RegExp(r'\([^\)]*[\u4e00-\u9fa5]+[^\)]*\)'), '');
+      // Remove parenthesized Chinese: (黑铁剑) or [黑铁剑]
+      clean = clean.replaceAll(RegExp(r'\([^)]*[\u4e00-\u9fa5]+[^)]*\)'), '');
       clean = clean.replaceAll(RegExp(r'\[[^\]]*[\u4e00-\u9fa5]+[^\]]*\]'), '');
 
-      // 2. Remove loose Chinese characters
+      // Remove loose Chinese characters
       clean = clean.replaceAll(RegExp(r'[\u4e00-\u9fa5]'), '');
 
-      // 3. Cleanup double spaces
-      while (clean.contains('  ')) {
-        clean = clean.replaceAll('  ', ' ');
-      }
-
-      // 4. Clean up hanging punctuation left after Chinese removal
-      // Remove sequences of punctuation with spaces like ", . , : "
+      // Clean up hanging punctuation left after Chinese removal
       clean = clean.replaceAll(RegExp(r'(\s*[,.:;]\s*){2,}'), ' ');
 
-      // Remove leading punctuation on lines (except quotes which may be dialogue)
+      // Remove leading punctuation on lines
       clean = clean.replaceAll(RegExp(r'^\s*[,.:;]+\s*', multiLine: true), '');
 
       // Remove trailing orphan punctuation
-      clean = clean.replaceAll(RegExp(r'\s+[,.:;]+\s*$', multiLine: true), '');
-
-      // Final cleanup of multiple spaces
-      while (clean.contains('  ')) {
-        clean = clean.replaceAll('  ', ' ');
-      }
+      clean = clean.replaceAll(RegExp(r'\s+[,.:;]+\s*' + r'$', multiLine: true), '');
     }
+
+    // Final cleanup: Fix double/multiple spaces
+    clean = clean.replaceAll(RegExp(r' {2,}'), ' ');
 
     return clean.trim();
   }
 
+  /// LAYER 1: Strict Model Parameters in chatCompletion
   Future<String> chatCompletion(
       {required String modelName,
       required List<Map<String, String>> messages,
       Map<String, dynamic>? options}) async {
     try {
-      // Convert display name to Ollama tag if needed (simple heuristic)
-      // Assuming the UI passes "Qwen2.5-0.5B" or "qwen2.5:0.5b"
-      // Ideally, the UI should pass the correct tag.
-      // But let's ensure it's lowercased and has colon if it was dash.
-      // Actually, let's trust the caller passes the correct tag or handle it in UI.
-      // But for safety against "Qwen2.5-7B" format:
       final String finalModel = modelName.toLowerCase().replaceAll('-', ':');
+
+      // LAYER 1: Strict Model Parameters to prevent hallucinations
+      final Map<String, dynamic> defaultOptions = {
+        "temperature": 0.2,      // Low creativity, high accuracy - kills hallucinations
+        "num_predict": 2048,     // Prevents cut-off sentences
+        "repeat_penalty": 1.2,   // Prevents loops like "rừngispereming" or ",,,"
+      };
+
+      // Merge caller options with defaults (caller options take precedence)
+      final Map<String, dynamic> mergedOptions = {
+        ...defaultOptions,
+        if (options != null) ...options,
+      };
 
       final body = {
         "model": finalModel,
         "messages": messages,
         "stream": false,
-        if (options != null) "options": options,
+        "options": mergedOptions,
       };
 
       final response = await http.post(
@@ -384,11 +394,9 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
         final List<dynamic> models = data['models'];
         return models.map<String>((m) => m['name'] as String).toList();
       } else {
-        print('Failed to load models: ${response.statusCode}');
         return [];
       }
     } catch (e) {
-      print('Error getting installed models: $e');
       return [];
     }
   }
@@ -405,8 +413,6 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
 
       if (response.statusCode == 200) {
         await response.stream.transform(utf8.decoder).listen((chunk) {
-          // Ollama sends multiple JSON objects in one chunk sometimes, or split across chunks
-          // We need to handle this robustly. For now, simple line splitting.
           final lines =
               chunk.split('\n').where((line) => line.trim().isNotEmpty);
           for (final line in lines) {
@@ -428,26 +434,21 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
         }).asFuture();
         return true;
       } else {
-        print('Failed to pull model: ${response.statusCode}');
         return false;
       }
     } catch (e) {
-      print('Error pulling model: $e');
       return false;
     }
   }
 
   /// Preload a model into memory silently (fire-and-forget)
-  /// Sends a minimal request to trigger model loading without generating text
   Future<void> preloadModel(String modelName) async {
     try {
-      // Convert display name to Ollama tag if needed
       final String finalModel = modelName.toLowerCase().replaceAll('-', ':');
 
       final body = {
         "model": finalModel,
-        "messages":
-            [], // Empty messages list triggers loading without generation
+        "messages": [],
       };
 
       await http.post(
@@ -455,12 +456,8 @@ Use this context to maintain narrative flow, consistent pronouns, and proper sub
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(body),
       );
-
-      // Silent success - no need to check response
-      print('Model preload triggered: $finalModel');
     } catch (e) {
-      // Silent failure - just log to console
-      print('Model preload failed: $e');
+      // Silent failure
     }
   }
 }

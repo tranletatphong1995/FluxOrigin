@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:csv/csv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import '../models/translation_progress.dart';
 import '../services/ai_service.dart';
@@ -169,8 +171,55 @@ class TranslationController {
       await progressFile.delete();
     }
 
+    // Add to history log
+    await _addToHistory(
+      dictionaryDir: dictionaryDir,
+      fileName: fileName,
+      status: 'completed',
+    );
+
     onUpdate("Dịch hoàn tất!", 1.0);
     return finalContent.toString();
+  }
+
+  /// Adds a translation entry to the history log
+  Future<void> _addToHistory({
+    required String dictionaryDir,
+    required String fileName,
+    required String status,
+  }) async {
+    final historyPath = path.join(dictionaryDir, 'history_log.json');
+    final historyFile = File(historyPath);
+
+    List<Map<String, dynamic>> history = [];
+
+    // Load existing history
+    if (await historyFile.exists()) {
+      try {
+        final content = await historyFile.readAsString();
+        final decoded = jsonDecode(content);
+        if (decoded is List) {
+          history = decoded.cast<Map<String, dynamic>>();
+        }
+      } catch (e) {
+        // If file is corrupted, start fresh
+        debugPrint('Error reading history: $e');
+      }
+    }
+
+    // Add new entry
+    history.add({
+      'fileName': fileName,
+      'date': DateTime.now().toIso8601String(),
+      'status': status,
+    });
+
+    // Save history
+    try {
+      await historyFile.writeAsString(jsonEncode(history));
+    } catch (e) {
+      debugPrint('Error saving history: $e');
+    }
   }
 
   /// Smart Merge: Merges AI-generated CSV with existing user CSV

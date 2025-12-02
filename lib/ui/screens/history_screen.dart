@@ -1,45 +1,48 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:path/path.dart' as path;
 import '../theme/app_theme.dart';
+import '../theme/config_provider.dart';
 
 class HistoryItem {
   final String fileName;
-  final String timeRange;
+  final DateTime date;
+  final String status;
 
   const HistoryItem({
     required this.fileName,
-    required this.timeRange,
+    required this.date,
+    required this.status,
   });
-}
 
-const List<HistoryItem> MOCK_HISTORY = [
-  HistoryItem(
-    fileName: "Business_Proposal_v2.docx",
-    timeRange: "14:20 - 14:25",
-  ),
-  HistoryItem(
-    fileName: "User_Manual_JP.pdf",
-    timeRange: "10:00 - 10:15",
-  ),
-  HistoryItem(
-    fileName: "Marketing_Strategy_2025.pptx",
-    timeRange: "09:30 - 09:45",
-  ),
-  HistoryItem(
-    fileName: "Financial_Report_Q4.xlsx",
-    timeRange: "16:00 - 16:30",
-  ),
-  HistoryItem(
-    fileName: "Project_Specs_2025.pdf",
-    timeRange: "09:30 - 09:35",
-  ),
-  HistoryItem(
-    fileName: "Meeting_Notes_Dec.txt",
-    timeRange: "11:15 - 11:20",
-  ),
-];
+  factory HistoryItem.fromJson(Map<String, dynamic> json) {
+    return HistoryItem(
+      fileName: json['fileName'] ?? '',
+      date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
+      status: json['status'] ?? 'unknown',
+    );
+  }
+
+  String get formattedDate {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+    
+    if (diff.inDays == 0) {
+      return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'Hôm qua';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} ngày trước';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+}
 
 class HistoryScreen extends StatefulWidget {
   final bool isDark;
@@ -50,42 +53,164 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
+
 class _HistoryScreenState extends State<HistoryScreen> {
+  bool _isLoading = true;
+  List<HistoryItem> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadHistory());
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _isLoading = true);
+
+    final configProvider = Provider.of<ConfigProvider>(context, listen: false);
+    final dictionaryDir = configProvider.dictionaryDir;
+
+    if (dictionaryDir.isEmpty) {
+      setState(() {
+        _history = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    final historyPath = path.join(dictionaryDir, 'history_log.json');
+    final historyFile = File(historyPath);
+
+    if (!await historyFile.exists()) {
+      setState(() {
+        _history = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final content = await historyFile.readAsString();
+      final decoded = jsonDecode(content);
+      
+      if (decoded is List) {
+        final items = decoded
+            .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+        
+        // Sort by newest first
+        items.sort((a, b) => b.date.compareTo(a.date));
+        
+        setState(() {
+          _history = items;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _history = [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading history: $e');
+      setState(() {
+        _history = [];
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Text(
-            'Lịch sử dịch thuật',
-            style: GoogleFonts.merriweather(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: widget.isDark ? Colors.white : AppColors.lightPrimary,
+    return RefreshIndicator(
+      onRefresh: _loadHistory,
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Lịch sử dịch thuật',
+                  style: GoogleFonts.merriweather(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: widget.isDark ? Colors.white : AppColors.lightPrimary,
+                  ),
+                ),
+                IconButton(
+                  onPressed: _loadHistory,
+                  icon: const FaIcon(FontAwesomeIcons.arrowsRotate, size: 14),
+                  tooltip: 'Làm mới',
+                  style: IconButton.styleFrom(
+                    backgroundColor: widget.isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : AppColors.lightPrimary.withValues(alpha: 0.1),
+                  ),
+                ),
+              ],
             ),
-          ),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          // List of history items
-          Expanded(
-            child: ListView.separated(
-              itemCount: MOCK_HISTORY.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _HistoryCard(
-                isDark: widget.isDark,
-                item: MOCK_HISTORY[index],
+            // Content
+            Expanded(child: _buildContent()),
+          ],
+        ),
+      ).animate().fadeIn(),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_history.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FaIcon(
+              FontAwesomeIcons.clockRotateLeft,
+              size: 48,
+              color: widget.isDark ? Colors.grey[600] : Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Chưa có lịch sử dịch',
+              style: TextStyle(
+                fontSize: 16,
+                color: widget.isDark ? Colors.grey[400] : Colors.grey[600],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Các file đã dịch thành công sẽ hiển thị ở đây',
+              style: TextStyle(
+                fontSize: 14,
+                color: widget.isDark ? Colors.grey[600] : Colors.grey[400],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      itemCount: _history.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => _HistoryCard(
+        isDark: widget.isDark,
+        item: _history[index],
       ),
-    ).animate().fadeIn();
+    );
   }
 }
+
 
 class _HistoryCard extends StatefulWidget {
   final bool isDark;
@@ -117,8 +242,8 @@ class _HistoryCardState extends State<_HistoryCard> {
           border: Border.all(
             color: _isHovered
                 ? (widget.isDark
-                    ? Colors.white.withOpacity(0.5)
-                    : AppColors.lightPrimary.withOpacity(0.5))
+                    ? Colors.white.withValues(alpha: 0.5)
+                    : AppColors.lightPrimary.withValues(alpha: 0.5))
                 : (widget.isDark
                     ? AppColors.darkBorder
                     : AppColors.lightBorder),
@@ -126,7 +251,7 @@ class _HistoryCardState extends State<_HistoryCard> {
           boxShadow: _isHovered
               ? [
                   BoxShadow(
-                    color: Colors.black.withOpacity(widget.isDark ? 0.3 : 0.05),
+                    color: Colors.black.withValues(alpha: widget.isDark ? 0.3 : 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -141,15 +266,19 @@ class _HistoryCardState extends State<_HistoryCard> {
               height: 40,
               decoration: BoxDecoration(
                 color: widget.isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : AppColors.lightPrimary.withOpacity(0.05),
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : AppColors.lightPrimary.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
                 child: FaIcon(
-                  FontAwesomeIcons.fileLines,
+                  widget.item.status == 'completed'
+                      ? FontAwesomeIcons.circleCheck
+                      : FontAwesomeIcons.fileLines,
                   size: 18,
-                  color: widget.isDark ? Colors.white : AppColors.lightPrimary,
+                  color: widget.item.status == 'completed'
+                      ? Colors.green
+                      : (widget.isDark ? Colors.white : AppColors.lightPrimary),
                 ),
               ),
             ),
@@ -170,9 +299,9 @@ class _HistoryCardState extends State<_HistoryCard> {
 
             const SizedBox(width: 16),
 
-            // Time Range (Right)
+            // Date (Right)
             Text(
-              widget.item.timeRange,
+              widget.item.formattedDate,
               style: GoogleFonts.inter(
                 fontSize: 13,
                 color: widget.isDark ? Colors.grey[400] : Colors.grey[600],
