@@ -81,7 +81,8 @@ class _MyAppState extends State<MyApp> {
                                       index: _selectedIndex,
                                       children: [
                                         TranslateScreen(
-                                            isDark: themeNotifier.isDark),
+                                            isDark: themeNotifier.isDark,
+                                            isActive: _selectedIndex == 0),
                                         HistoryScreen(
                                             isDark: themeNotifier.isDark),
                                         DictionaryScreen(

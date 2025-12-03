@@ -16,8 +16,10 @@ enum TranslationState { idle, fileSelected, processing, finished }
 
 class TranslateScreen extends StatefulWidget {
   final bool isDark;
+  final bool isActive;
 
-  const TranslateScreen({super.key, required this.isDark});
+  const TranslateScreen(
+      {super.key, required this.isDark, this.isActive = true});
 
   @override
   State<TranslateScreen> createState() => _TranslateScreenState();
@@ -364,6 +366,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
         return FileUploadZone(
           isDark: widget.isDark,
           onFileSelected: _onFileSelected,
+          enabled: widget.isActive,
         ).animate().fadeIn();
 
       case TranslationState.fileSelected:

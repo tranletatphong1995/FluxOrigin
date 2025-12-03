@@ -88,6 +88,7 @@ class AppStrings {
       'drag_drop_or': 'Kéo và thả file hoặc',
       'browse_files': 'Chọn từ máy',
       'supported_dict_formats': 'Hỗ trợ .csv',
+      'unsupported_dict_format_error': 'Chỉ hỗ trợ file .CSV',
       // Common
       'confirm': 'Xác nhận',
       'success': 'Thành công',
@@ -208,6 +209,7 @@ class AppStrings {
       'drag_drop_or': 'Drag and drop file or',
       'browse_files': 'Browse',
       'supported_dict_formats': 'Supports .csv',
+      'unsupported_dict_format_error': 'Only .CSV files are supported',
       // Common
       'confirm': 'Confirm',
       'success': 'Success',

@@ -13,6 +13,7 @@ class FileUploadZone extends StatefulWidget {
   final String title;
   final String subtitle;
   final IconData icon;
+  final bool enabled;
 
   final Function(String)? onFileSelected;
 
@@ -23,6 +24,7 @@ class FileUploadZone extends StatefulWidget {
     this.subtitle = 'Hỗ trợ .TXT, .EPUB',
     this.icon = FontAwesomeIcons.cloudArrowUp,
     this.onFileSelected,
+    this.enabled = true,
   });
 
   @override
@@ -45,6 +47,8 @@ class _FileUploadZoneState extends State<FileUploadZone> {
       },
       onDragDone: (details) {
         setState(() => _isDragging = false);
+        // Only process drop if enabled
+        if (!widget.enabled) return;
         if (details.files.isNotEmpty) {
           final file = details.files.first;
           final ext = path.extension(file.path).toLowerCase();
