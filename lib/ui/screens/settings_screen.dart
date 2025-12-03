@@ -219,7 +219,7 @@ class _SettingsScreenState extends State<SettingsScreen>
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'Merriweather (Mặc định)',
+                          'Merriweather (${AppStrings.get(lang, 'default_label')})',
                           style: TextStyle(
                             fontSize: 14,
                             color: widget.isDark

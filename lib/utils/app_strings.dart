@@ -76,6 +76,18 @@ class AppStrings {
       'showing_dictionaries': 'Hiển thị dictionaries từ điển',
       'no_dictionaries': 'Chưa có từ điển nào',
       'no_dictionaries_subtitle': 'Thêm file .csv vào thư mục dictionary',
+      // Upload Dictionary Modal
+      'add_dict_title': 'Thêm từ điển mới',
+      'dict_name_label': 'Tên hiển thị',
+      'dict_name_hint': 'Nhập tên từ điển...',
+      'dict_file_label': 'File dữ liệu (.json, .csv)',
+      'select_file_btn': 'Chọn file',
+      'file_selected': 'Đã chọn file:',
+      'upload_btn': 'Thêm từ điển',
+      'error_missing_info': 'Vui lòng nhập tên và chọn file',
+      'drag_drop_or': 'Kéo và thả file hoặc',
+      'browse_files': 'Chọn từ máy',
+      'supported_dict_formats': 'Hỗ trợ .csv',
       // Common
       'confirm': 'Xác nhận',
       'success': 'Thành công',
@@ -105,6 +117,7 @@ class AppStrings {
       'lang_en': 'Tiếng Anh',
       'lang_vi': 'Tiếng Việt',
       'lang_cn': 'Tiếng Trung',
+      'default_label': 'Mặc định',
     },
     'en': {
       'settings_title': 'Settings',
@@ -183,6 +196,18 @@ class AppStrings {
       'showing_dictionaries': 'Showing dictionaries',
       'no_dictionaries': 'No dictionaries found',
       'no_dictionaries_subtitle': 'Add .csv files to the dictionary folder',
+      // Upload Dictionary Modal
+      'add_dict_title': 'Add New Dictionary',
+      'dict_name_label': 'Display Name',
+      'dict_name_hint': 'Enter dictionary name...',
+      'dict_file_label': 'Data File (.json, .csv)',
+      'select_file_btn': 'Select File',
+      'file_selected': 'File selected:',
+      'upload_btn': 'Add Dictionary',
+      'error_missing_info': 'Please enter name and select file',
+      'drag_drop_or': 'Drag and drop file or',
+      'browse_files': 'Browse',
+      'supported_dict_formats': 'Supports .csv',
       // Common
       'confirm': 'Confirm',
       'success': 'Success',
@@ -211,6 +236,7 @@ class AppStrings {
       'lang_en': 'English',
       'lang_vi': 'Vietnamese',
       'lang_cn': 'Chinese',
+      'default_label': 'Default',
     },
   };
 
