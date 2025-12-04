@@ -1,0 +1,28 @@
+# --- QUẢN LÝ DỰ ÁN & PHÁP LÝ ---
+# Chỉ có chủ dự án mới được thay đổi giấy phép và thông tin dự án
+LICENSE                 @d-init-d
+README.md               @d-init-d
+.gitignore              @d-init-d
+
+# --- CẤU HÌNH FLUTTER (QUAN TRỌNG NHẤT) ---
+# Ngăn chặn việc tự ý thêm thư viện hoặc đổi version Dart
+pubspec.yaml            @d-init-d
+pubspec.lock            @d-init-d
+analysis_options.yaml   @d-init-d
+
+# --- CẤU HÌNH WINDOWS NATIVE ---
+# Các file C++ và CMake cấu hình việc build app trên Windows
+windows/CMakeLists.txt          @d-init-d
+windows/runner/CMakeLists.txt   @d-init-d
+windows/runner/Runner.rc        @d-init-d
+windows/runner/main.cpp         @d-init-d
+
+# --- FILE CÀI ĐẶT (INNO SETUP) ---
+# Bảo vệ script tạo bộ cài .exe
+installers/*.iss        @d-init-d
+
+# --- TÀI NGUYÊN THƯƠNG HIỆU ---
+# Bảo vệ logo và icon app
+# Lưu ý: Cần thêm dấu \ trước khoảng trắng trong tên file
+assets/fluxorigin\ logo.png      @d-init-d
+windows/runner/resources/app_icon.ico @d-init-d
