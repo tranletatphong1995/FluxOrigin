@@ -718,7 +718,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
                 icon: const FaIcon(FontAwesomeIcons.floppyDisk, size: 18),
                 label: Text(
                   AppStrings.get(lang, 'save_result'),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 1,

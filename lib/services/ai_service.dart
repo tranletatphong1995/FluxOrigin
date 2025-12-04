@@ -239,7 +239,7 @@ CRITICAL OUTPUT RULES:
       contextInstruction = """
 ### CONTEXT FROM PREVIOUS SECTION:
 The following is the ending of the previous translated section for continuity reference:
-"${previousContext}"
+"$previousContext"
 
 Use this context to maintain narrative flow, consistent pronouns, and proper subject references. Do NOT re-translate the context - only translate the new text below.
 

@@ -174,7 +174,7 @@ class _FileUploadZoneState extends State<FileUploadZone> {
                     ),
                     child: Text(
                       AppStrings.get(lang, 'choose_file'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
