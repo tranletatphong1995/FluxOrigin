@@ -3,7 +3,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Windows-blue?style=flat-square" alt="Platform">
   <img src="https://img.shields.io/badge/Flutter-3.x-02569B?style=flat-square&logo=flutter" alt="Flutter">
-  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/License-GPLv3-blue?style=flat-square" alt="License">
 </p>
 
 **FluxOrigin** là một ứng dụng Desktop (Windows) mạnh mẽ hỗ trợ dịch sách, tài liệu tự động sử dụng sức mạnh của AI cục bộ (Local LLM).
@@ -154,4 +154,16 @@ Dự án này được phát triển tiếp từ ý tưởng của **n8n book tr
 
 Mọi đóng góp, báo lỗi (Issue) hoặc yêu cầu tính năng (Pull Request) đều được hoan nghênh!
 
+Developed with ❤️ by d-init-d
 ---
+## ⚖️ Giấy phép & Bản quyền (License & Branding)
+
+Dự án này được phân phối dưới giấy phép **GPLv3**.
+
+> **Lưu ý về Thương hiệu:**
+> Tên ứng dụng **"FluxOrigin"** và Logo là tài sản riêng. Bạn có thể fork và sửa code theo GPLv3, nhưng vui lòng **đổi tên và logo khác** nếu bạn phát hành bản sửa đổi đó ra công chúng.
+---
+## Contributors
+
+[![Contributors](https://contrib.rocks/image?repo=d-init-d/FluxOrigin)](https://github.com/d-init-d/FluxOrigin/graphs/contributors)
+
