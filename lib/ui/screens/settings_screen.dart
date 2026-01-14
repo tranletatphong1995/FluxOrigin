@@ -1128,7 +1128,7 @@ class _SettingsScreenState extends State<SettingsScreen>
               Align(
                 alignment: Alignment.bottomRight,
                 child: Text(
-                  'FluxOrigin v1.0.0 - Made with ☕ by d-init-d',
+                  'FluxOrigin v2.0.2 - Made with ☕ by d-init-d',
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'Consolas',

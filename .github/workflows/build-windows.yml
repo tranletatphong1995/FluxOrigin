@@ -1,0 +1,67 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      # === ZIP (Portable) ===
+      - name: Create ZIP archive
+        run: |
+          cd build/windows/x64/runner/Release
+          Compress-Archive -Path * -DestinationPath ../../../../../FluxOrigin-Windows-Portable.zip
+
+      - name: Upload ZIP Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluxOrigin-Windows-Portable
+          path: FluxOrigin-Windows-Portable.zip
+          retention-days: 30
+
+      # === MSIX (Installer) ===
+      - name: Build MSIX installer
+        run: dart run msix:create
+
+      - name: Upload MSIX Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: FluxOrigin-Windows-MSIX
+          path: build/windows/x64/runner/Release/*.msix
+          retention-days: 30
+
+      # === Release (on tag) ===
+      - name: Create Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            FluxOrigin-Windows-Portable.zip
+            build/windows/x64/runner/Release/*.msix
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -76,6 +76,7 @@ class TranslationController {
   /// [onUpdate] callback returns status message and progress (0.0 to 1.0).
   /// [onChunkUpdate] callback returns current chunk index, total chunks, source chunk, and translated chunk.
   /// [allowInternet] controls whether web search (RAG) is used for glossary enrichment.
+  /// [userDictionaryPath] optional path to user-provided CSV dictionary file to use as base.
   /// [resume] if true and progress exists, resume from saved state; if false, start fresh.
   /// Returns the translated content as a String, or null if paused.
   Future<String?> processFile({
@@ -89,6 +90,7 @@ class TranslationController {
             String translatedChunk)?
         onChunkUpdate,
     required bool allowInternet,
+    String? userDictionaryPath,
     bool resume = false,
     String appLanguage = 'vi',
   }) async {
@@ -182,15 +184,24 @@ Resume: $resume
         final glossaryFile =
             File(path.join(dictionaryDir, "${fileName}_glossary.csv"));
 
+        // If user provided a dictionary file, use it as the base
+        final File? userDictFile = userDictionaryPath != null && userDictionaryPath.isNotEmpty
+            ? File(userDictionaryPath)
+            : null;
+
         try {
           final String mergedCsv = await _smartMergeGlossary(
             aiGeneratedCsv: glossaryCsv,
             existingFile: glossaryFile,
+            userDictionaryFile: userDictFile,
           );
 
           // Save merged glossary as CSV
           await glossaryFile.writeAsString(mergedCsv);
           _logger.debug('Translation', 'Glossary saved to: ${glossaryFile.path}');
+          if (userDictFile != null) {
+            _logger.info('Translation', 'User dictionary merged: ${userDictFile.path}');
+          }
         } catch (e) {
           _logger.warning('Translation', 'Error saving glossary: $e');
           // Non-critical error, continue
@@ -394,6 +405,7 @@ Resume: $resume
   Future<String> _smartMergeGlossary({
     required String aiGeneratedCsv,
     required File existingFile,
+    File? userDictionaryFile,
   }) async {
     // Parse AI-generated CSV
     List<List<dynamic>> aiRows = [];
@@ -420,7 +432,11 @@ Resume: $resume
       }
     }
 
-    // If existing file exists, load and preserve user edits
+    // Priority order: userDictionaryFile > existingFile > aiMap
+    // This ensures user-provided dictionary has highest priority
+    final Map<String, List<String>> mergedMap = {...aiMap};
+
+    // If existing file exists, load and merge (overwrites AI entries)
     if (await existingFile.exists()) {
       List<List<dynamic>> existingRows = [];
       try {
@@ -434,38 +450,52 @@ Resume: $resume
         print("Error parsing existing glossary CSV: $e");
       }
 
-      // User edits take priority
-      final Map<String, List<String>> userMap = {};
       for (final row in existingRows) {
         if (row.length >= 2) {
           final original = row[0].toString().trim();
           final vietnamese = row[1].toString().trim();
           final definition = row.length > 2 ? row[2].toString().trim() : "";
           if (original.isNotEmpty) {
-            userMap[original] = [vietnamese, definition];
+            mergedMap[original] = [vietnamese, definition];
           }
         }
       }
-
-      // Merge: User edits + New AI entries
-      // Start with AI map, then overwrite with User map
-      final Map<String, List<String>> mergedMap = {...aiMap};
-      mergedMap.addAll(userMap);
-
-      // Convert back to CSV
-      final List<List<String>> csvData = mergedMap.entries.map((e) {
-        return [e.key, e.value[0], e.value[1]];
-      }).toList();
-
-      return const ListToCsvConverter().convert(csvData, eol: '\n');
-    } else {
-      // No existing file, use AI-generated CSV but ensure 3 columns structure
-      final List<List<String>> csvData = aiMap.entries.map((e) {
-        return [e.key, e.value[0], e.value[1]];
-      }).toList();
-
-      return const ListToCsvConverter().convert(csvData, eol: '\n');
     }
+
+    // If user provided a dictionary file, load and merge (highest priority)
+    if (userDictionaryFile != null && await userDictionaryFile.exists()) {
+      List<List<dynamic>> userRows = [];
+      try {
+        final String userContent = await userDictionaryFile.readAsString();
+        userRows = const CsvToListConverter().convert(
+          userContent,
+          eol: '\n',
+          shouldParseNumbers: false,
+        );
+        _logger.info('Translation', 'Loaded user dictionary: ${userRows.length} entries');
+      } catch (e) {
+        print("Error parsing user dictionary CSV: $e");
+      }
+
+      for (final row in userRows) {
+        if (row.length >= 2) {
+          final original = row[0].toString().trim();
+          final vietnamese = row[1].toString().trim();
+          final definition = row.length > 2 ? row[2].toString().trim() : "";
+          if (original.isNotEmpty) {
+            // User dictionary has HIGHEST priority - always overwrites
+            mergedMap[original] = [vietnamese, definition];
+          }
+        }
+      }
+    }
+
+    // Convert back to CSV
+    final List<List<String>> csvData = mergedMap.entries.map((e) {
+      return [e.key, e.value[0], e.value[1]];
+    }).toList();
+
+    return const ListToCsvConverter().convert(csvData, eol: '\n');
   }
 
   /// Enriches the glossary by looking up definitions for terms

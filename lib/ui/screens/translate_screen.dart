@@ -210,6 +210,7 @@ class _TranslateScreenState extends State<TranslateScreen> {
         sourceLanguage: _sourceLang,
         targetLanguage: _targetLang,
         allowInternet: allowInternet,
+        userDictionaryPath: _useCustomDict ? _selectedDictionaryPath : null,
         resume: resume,
         appLanguage: lang,
         onUpdate: (status, progress) {
